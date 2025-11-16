@@ -17,6 +17,8 @@ The player starts at the bottom-left corner of the mansion and can explore by op
 - Moving between rooms consumes **steps** (initially 70).
 - Items such as **gems, keys, dice, gold, food, and permanent tools** modify gameplay.
 - The **Exit** is located in the **top-center** of the grid — reaching it ends the game.
+- Press "P" to pause the game
+- Ctrl + S to save the game
 
 ---
 
