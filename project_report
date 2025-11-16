@@ -1,0 +1,297 @@
+Blue Prince - Project Report
+Made by Juan, Mohand, Christian
+Executive Summary
+This report presents a Python implementation of a simplified version of the video game "Blue Prince" developed as part of the Object-Oriented Programming (POO) course project. The game is a single-player dungeon exploration game where players navigate through a magical manor with 45 rooms arranged in a 5×9 grid, progressively choosing rooms to create a path from the entrance to the exit.
+1. Project Overview
+1.1 Game Concept
+Blue Prince is a roguelike exploration game where the manor's rooms are dynamically chosen by the player. When opening a new door, the game presents three randomly drawn rooms, and the player selects which one will occupy that position in the grid. The objective is to reach the "Antechamber" located at the top of the manor while managing limited resources.
+1.2 Win/Loss Conditions
+Victory: Successfully reaching the Antechamber (exit room)
+Defeat occurs when:
+
+The player runs out of steps (movement resource)
+No viable path exists to reach the exit
+
+2. Game Mechanics
+2.1 Inventory System
+The inventory is divided into two categories:
+Consumable Items:
+
+Steps (initial: 70): Decremented by 1 with each movement between rooms
+Gold Coins (initial: 0): Currency for purchasing items in shops
+Gems (initial: 2): Used to select premium rooms during draws
+Keys (initial: 0): Required to open locked doors and chests
+Dice (initial: 0): Allow re-rolling room selections
+
+Permanent Items:
+
+Shovel: Enables digging at designated spots
+Hammer: Opens chests without consuming keys
+Lockpick Kit: Opens level 1 locked doors without keys
+Metal Detector: Increases chance of finding keys and coins
+Rabbit's Foot: Increases chance of finding all items
+
+2.2 Room System
+Each room is characterized by:
+
+Name and visual representation
+Room type (bedroom, workshop, library, trap, etc.)
+Color category (blue, green, yellow, violet, orange, red)
+Gem cost (0-3 gems required to select)
+Rarity level (0-3, affecting draw probability)
+Door configuration (number and lock levels)
+Contents (food, chests, dig spots, permanent items)
+Special effects
+
+Color Categories and Characteristics:
+
+Blue: Common rooms with varied effects
+Green: Gardens containing gems, dig spots, and permanent items
+Yellow: Workshops providing keys
+Violet: Bedrooms containing food
+Orange: Corridors with many doors
+Red: Dangerous rooms with traps or disadvantages
+
+2.3 Door Mechanics
+Doors have three lock levels:
+
+Level 0 (Unlocked): Free to open
+Level 1 (Locked): Requires 1 key (or lockpick kit)
+Level 2 (Double-locked): Requires 1 key (lockpick kit ineffective)
+
+Lock level probability increases with distance from entrance, ensuring progressive difficulty.
+2.4 Room Drawing System
+When opening a new door:
+
+Three rooms are randomly drawn from the catalog
+Draw respects rarity weights (each rarity level divides probability by 3)
+At least one room must have 0 gem cost (accessibility guarantee)
+Player selects one room using arrow keys
+Selected room is placed in the grid and removed from the catalog
+
+3. Technical Implementation
+3.1 Architecture and Design Patterns
+The project follows object-oriented design principles with clear separation of concerns:
+Core Classes:
+
+GameManager - Central orchestrator managing game loop, events, and state
+Grid - Manages the 5×9 room grid and discovery status
+Room - Represents individual rooms with properties and effects
+Player - Handles player position and cursor movement
+Inventory - Manages consumable and permanent items
+Item (Abstract Base Class) - Defines item interface with inheritance hierarchy
+
+Supporting Modules:
+
+effects.py - Room effect application logic
+ui.py - Rendering functions for grid, inventory, and messages
+menu.py - Main menu and pause overlay
+save_manager.py - Save/load game state serialization
+constants.py - Global configuration (dimensions, colors, paths)
+
+3.2 Object-Oriented Concepts Applied
+1. Abstraction:
+The Item abstract base class defines a common interface:
+pythonclass Item(ABC):
+    @abstractmethod
+    def use(self, player):
+        pass
+2. Inheritance:
+Specialized item classes inherit from ConsumableItem:
+
+Steps, Keys, Gems, Coins all extend ConsumableItem
+Each implements custom use() behavior while sharing common functionality
+
+3. Polymorphism:
+Different items respond to the same use() method call with type-specific behavior
+4. Encapsulation:
+Data and behavior are bundled within classes (e.g., Inventory manages its own resources)
+5. Composition:
+
+Player contains a reference to Inventory
+GameManager composes Grid, Player, and Inventory
+Room objects contain effect_data dictionaries
+
+3.3 Key Design Decisions
+1. Room Catalog Structure
+Rooms are defined with comprehensive metadata allowing flexible generation:
+pythonRoom("Library", image_name="bibliotheque.png", room_type="bibliotheque",
+     cost_gems=1, color_type="green", rarity=1,
+     effect_data={"gems": 1})
+Justification: This data-driven approach separates room definitions from game logic, enabling easy addition of new rooms without code changes.
+2. Effect System
+Room effects are handled in a centralized apply_room_effect() function using type-based dispatch:
+Justification: Centralizing effect logic prevents code duplication and makes effect interactions easier to debug. The function checks room type and applies appropriate effects based on effect_data.
+3. Cursor vs Player Position
+Separate tracking of player position (player.row, player.col) and selection cursor (player.sel_row, player.sel_col):
+Justification: Allows players to preview adjacent rooms before committing to movement, improving user experience and strategic planning.
+4. Modal Dialog System
+Room selection uses an in-game modal (in_modal flag) rather than separate screens:
+Justification: Maintains game context visibility while making selections, and simplifies state management.
+5. Save System Architecture
+Complete game state serialization to JSON including:
+
+Full grid with all room properties
+Complete inventory state
+Player position
+Discovery status for all cells
+
+Justification: JSON format is human-readable for debugging, easily extensible, and allows complete game state restoration.
+3.4 Randomization Implementation
+Rarity-Weighted Room Drawing:
+pythonweights = [rm.get_probability_weight() for rm in candidate_rooms]
+choices = random.choices(candidate_rooms, weights=weights, k=3)
+```
+
+Each rarity level divides probability by 3: `weight = 1.0 / (3 ** rarity)`
+
+**Progressive Door Difficulty:**
+Lock levels increase linearly with row index, ensuring first row has only unlocked doors and last row only double-locked doors.
+
+**Randomized Rewards:**
+Chests, dig spots, and lockers randomly select from predefined reward pools.
+
+### 3.5 User Interface Design
+
+**Layout:**
+- Left side: 5×9 grid showing discovered rooms (996×600 pixels)
+- Right panel: Inventory display (260×600 pixels)
+- Bottom: Message bar for feedback
+
+**Visual Feedback:**
+- Blue border: Current player position
+- Red border: Selection cursor
+- Color-coded rooms by category
+- Icons for inventory items
+- Modal overlay for room selection with visual previews
+
+**Controls:**
+- **ZQSD / Arrow Keys**: Move cursor
+- **Space**: Confirm movement / open door
+- **Enter**: Reset cursor to player
+- **P**: Pause
+- **Ctrl+S**: Save game
+- **ESC**: Return to menu
+
+### 3.6 File Structure
+```
+blue_prince/
+├── main.py                 # Entry point with game loop
+├── game_manager.py         # Core game logic orchestrator
+├── grid.py                 # Grid and Room classes
+├── player.py               # Player movement and cursor
+├── inventory.py            # Inventory management
+├── item.py                 # Abstract Item classes
+├── effects.py              # Room effect application
+├── ui.py                   # Rendering functions
+├── menu.py                 # Menu and overlays
+├── save_manager.py         # Save/load functionality
+├── constants.py            # Global configuration
+├── sound_manager.py        # Audio system (optional)
+├── assets/
+│   ├── rooms/             # Room PNG images
+│   ├── icons/             # Item icons
+│   ├── fonts/             # Custom fonts
+│   └── audio/             # Music and sound effects
+└── saves/
+    └── save.json          # Saved game state
+4. Features Implementation
+4.1 Core Features (Implemented)
+✅ Grid navigation and cursor system - Players move cursor with ZQSD, confirm with Space
+✅ Door opening mechanics - Three lock levels with key/lockpick requirements
+✅ Room drawing and selection - Weighted random selection with rarity system
+✅ Resource management - Steps, gems, keys, dice, gold fully functional
+✅ Food system - Various food items restore different step amounts
+✅ Win/lose conditions - Victory at Antechamber, defeat when out of steps
+✅ Permanent items - All 5 permanent items with functional effects
+✅ Random door locks - Progressive difficulty from entrance to exit
+✅ Save/load system - Complete game state persistence
+✅ Visual interface - Clean pygame-based UI with icons and colors
+4.2 Advanced Features (Implemented)
+✅ Locked rooms requiring keys to enter - Special rooms like "Coffre-Fort"
+✅ Container system - Chests, lockers, and dig spots with random rewards
+✅ Room effects - Multiple effect types (resource gain, traps, modifiers)
+✅ Color-coded room categories - Visual and mechanical differentiation
+✅ Modal room selection - Shows room name, color, cost, and rarity
+✅ Pause system - P key to pause with overlay
+✅ Main menu - New game, load game, and quit options
+✅ Victory screen - Displays final statistics and collected items
+4.3 Technical Quality Features
+✅ Comprehensive documentation - Docstrings for all classes and methods
+✅ Clean code structure - Logical module separation
+✅ Git workflow - Regular commits with descriptive messages
+✅ Asset management - Organized directory structure for resources
+✅ Error handling - Graceful handling of missing assets and invalid states
+5. Challenges and Solutions
+5.1 Event Handling Architecture
+Challenge: Pygame event loop conflicts between main.py and GameManager
+Solution: Implemented handle_events_from_main(events) method allowing main loop to collect events and pass them to GameManager, preventing event queue exhaustion.
+5.2 Room Effect System
+Challenge: Differentiating between rooms and objects within rooms
+Solution: Clarified conceptual model where objects (food, tools, chests) exist INSIDE rooms, not as rooms themselves. Effects apply based on room_type with object availability in effect_data.
+5.3 Modal State Management
+Challenge: Maintaining game state while showing room selection modal
+Solution: Used boolean flag in_modal to switch event handling context, with separate _handle_modal_key() method for modal-specific controls.
+5.4 Save System Complexity
+Challenge: Serializing complex Room objects with pygame images
+Solution: Separated room metadata (serializable) from pygame.Surface objects (reconstructed on load), storing only image filenames.
+6. Testing and Validation
+6.1 Manual Testing
+Extensive playtesting verified:
+
+Movement mechanics and boundary checking
+Resource consumption and gain
+Door lock levels and key requirements
+Room drawing probability distribution
+Save/load state preservation
+Win/lose condition triggering
+
+6.2 Edge Cases Handled
+
+Attempting to move to non-adjacent cells
+Opening doors without required keys
+Selecting rooms without sufficient gems
+Running out of steps mid-game
+Loading non-existent save files
+Missing asset files (fallback to colors)
+
+7. Future Enhancements
+7.1 Potential Additions
+
+Sound effects - Audio feedback for actions (door opening, item pickup)
+Animation system - Smooth transitions for movement and effects
+Additional room types - Shops for gold spending, puzzle rooms
+Multiplayer mode - Competitive or cooperative gameplay
+Procedural room generation - Infinite replayability
+Achievement system - Track player accomplishments
+Difficulty levels - Adjust starting resources and probabilities
+
+7.2 Code Improvements
+
+Unit testing - Automated test suite for game logic
+Configuration files - External JSON for room catalog
+Localization - Multi-language support
+Performance optimization - Caching, reduced redraws
+Better encapsulation - Private attributes with properties
+
+8. Conclusion
+This Blue Prince implementation successfully demonstrates object-oriented programming principles in a complete, playable game. The project achieves:
+
+Functional completeness: All core mechanics implemented and working
+Clean architecture: Well-structured code following OOP best practices
+Maintainability: Modular design allows easy extension
+User experience: Intuitive controls and clear visual feedback
+Technical quality: Comprehensive documentation and Git workflow
+
+The implementation balances complexity with clarity, providing an engaging gameplay experience while maintaining code quality. The modular architecture makes the codebase accessible for future enhancements while the current feature set delivers a complete game experience.
+
+Technologies Used:
+
+Python 3.x
+Pygame for graphics and input
+JSON for save system
+Git/GitHub for version control
+
+Total Lines of Code: ~2000+ across all modules
+Development Time: Approximately 40-50 hours
+Team Size: Designed for 3-person team collaboration
